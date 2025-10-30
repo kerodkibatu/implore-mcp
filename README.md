@@ -2,16 +2,18 @@
 
 **MCP to Implore the Human Intelligence**
 
-A Model Context Protocol (MCP) server that provides a tool to request input from humans via GUI dialog boxes. This tool allows AI assistants to "implore" human users for input, decisions, or clarification through a visual interface.
+A Model Context Protocol (MCP) server that provides a quiz-style tool to request input from humans via GUI dialogs. This tool allows AI assistants to "implore" human users for clarification, decisions, or knowledge extraction through an interactive visual interface.
 
-Inspired by the [Interactive Feedback MCP](https://github.com/dotcursorrules/interactive-feedback-mcp)
+Inspired by the [Interactive Feedback MCP](https://github.com/dotcursorrules/interactive-feedback-mcp) pattern.
 
 ## Features
 
-- **Simple GUI Dialog**: Uses PySide6 to display native GUI dialogs
+- **Quiz-Style Interface**: Display multiple questions in a single, scrollable dialog
+- **Multiple Question Types**: 
+  - Multiple choice (radio buttons)
+  - Free-form text input
 - **Process Isolation**: GUI runs in a separate subprocess to avoid blocking the MCP server
-- **Flexible Input**: Request any text input from users with custom messages
-- **System Monitoring**: Includes psutil-based system information tool
+- **Structured Responses**: Get organized answers mapped to question IDs
 - **FastMCP Integration**: Built on FastMCP for easy MCP server implementation
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 
@@ -19,7 +21,7 @@ Inspired by the [Interactive Feedback MCP](https://github.com/dotcursorrules/int
 
 The tool uses a decoupled architecture:
 - `server.py`: MCP server that handles tool requests and launches the GUI subprocess
-- `implore_ui.py`: Separate GUI process that displays dialogs and communicates results via temporary files
+- `implore_ui.py`: Separate GUI process that displays quiz dialogs and communicates results via temporary files
 - Communication via temporary JSON files ensures the main server process remains responsive
 
 ## Installation
@@ -87,51 +89,129 @@ Add to your MCP client configuration (e.g., Claude Desktop, Cline):
 
 Once configured, the AI assistant can use the `implore` tool to request input from you:
 
-**Example 1: Simple HelloWorld**
-```
-Tool: implore
-Arguments: {}
-Result: Shows a dialog with "HelloWorld" message
-```
-
-**Example 2: Custom Message**
+#### Example 1: Single Free-Form Question
 ```
 Tool: implore
 Arguments: {
-  "message": "Please provide the API key for the service:",
-  "title": "API Key Required"
+  "questions": [
+    {
+      "text": "What is your preferred color scheme?",
+      "type": "free_form"
+    }
+  ]
 }
-Result: Shows a dialog with your custom message and returns user input
+Result: {
+  "success": true,
+  "answers": {
+    "q1": "Dark mode"
+  }
+}
+```
+
+#### Example 2: Multiple Choice Question
+```
+Tool: implore
+Arguments: {
+  "questions": [
+    {
+      "id": "framework",
+      "text": "Which web framework should we use?",
+      "type": "multiple_choice",
+      "options": ["React", "Vue", "Angular", "Svelte"]
+    }
+  ],
+  "title": "Framework Selection"
+}
+Result: {
+  "success": true,
+  "answers": {
+    "framework": "React"
+  }
+}
+```
+
+#### Example 3: Mixed Question Types
+```
+Tool: implore
+Arguments: {
+  "questions": [
+    {
+      "id": "deployment",
+      "text": "Where should we deploy the application?",
+      "type": "multiple_choice",
+      "options": ["AWS", "Azure", "Google Cloud", "On-Premise"]
+    },
+    {
+      "id": "timeline",
+      "text": "What is your preferred timeline?",
+      "type": "free_form"
+    },
+    {
+      "id": "budget",
+      "text": "What is your budget range?",
+      "type": "multiple_choice",
+      "options": ["Under $100", "$100-$500", "$500-$1000", "Over $1000"]
+    },
+    {
+      "id": "additional",
+      "text": "Any additional requirements or concerns?",
+      "type": "free_form"
+    }
+  ],
+  "title": "Project Planning Questions"
+}
+Result: {
+  "success": true,
+  "answers": {
+    "deployment": "AWS",
+    "timeline": "2-3 months",
+    "budget": "$500-$1000",
+    "additional": "Need to support mobile devices"
+  }
+}
 ```
 
 ## Tool Reference
 
 ### `implore`
 
-Displays a GUI dialog to request input from the user. The dialog runs in a separate process.
+Displays a quiz-style GUI dialog to request input from the user. The dialog runs in a separate process and can handle multiple questions of different types.
 
 **Parameters:**
-- `message` (str, optional): The message to display to the user. Default: "HelloWorld"
+
+- `questions` (list, required): Array of question objects for quiz-style interface
 - `title` (str, optional): The title of the dialog window. Default: "Human Input Requested"
 
-**Returns:**
-- User's response as a string
-- "(empty response)" if user submitted without entering text
-- "(cancelled by user)" if user cancelled the dialog
-- Error message if dialog could not be displayed
+**Question Object Structure:**
 
-### `system_info`
-
-Gets current system resource information using psutil.
-
-**Parameters:** None
+Each question in the list should have:
+- `text` (str, required): The question text to display
+- `type` (str, required): Either "multiple_choice" or "free_form"
+- `options` (list, optional): List of option strings (required for multiple_choice)
+- `id` (str, optional): Unique identifier (auto-generated as "q1", "q2", etc. if not provided)
 
 **Returns:**
-- Dictionary containing:
-  - `cpu_percent`: Current CPU usage percentage
-  - `memory_percent`: Current memory usage percentage
-  - `process_count`: Number of running processes
-  - `available_memory_mb`: Available memory in megabytes
+
+Dictionary with structured response:
+- **Success**: `{"success": True, "answers": {question_id: answer, ...}}`
+- **Cancelled**: `{"success": False, "cancelled": True}`
+- **Error**: `{"success": False, "error": "error message"}`
+
+**Notes:**
+- Multiple choice questions that aren't answered will have `null` value
+- Free-form questions that aren't answered will have empty string value
+
+## Use Cases
+
+The `implore` tool is perfect for:
+
+1. **Requirement Clarification**: Ask users to clarify ambiguous requirements
+2. **Design Decisions**: Get user preferences on architecture or design choices
+3. **Configuration Selection**: Let users choose from predefined configuration options
+4. **Knowledge Extraction**: Extract implicit knowledge from users through targeted questions
+5. **Progress Checkpoints**: Confirm decisions before proceeding with major changes
+6. **Feature Prioritization**: Ask users to prioritize features or tasks
+7. **Error Resolution**: When multiple solutions exist, ask user which approach to take
 
 ## Dependencies
 
@@ -146,3 +226,7 @@ Gets current system resource information using psutil.
 ## Contributing
 
 [Add contribution guidelines here]
+
+## Credits
+
+Developed with inspiration from the [Interactive Feedback MCP](https://github.com/dotcursorrules/interactive-feedback-mcp) pattern.

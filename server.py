@@ -1,5 +1,5 @@
 """
-Implore MCP Server - A tool to request input from humans via GUI dialog.
+Implore MCP Server - A tool to request input from humans via GUI quiz dialog.
 Developed with inspiration from Interactive Feedback MCP pattern.
 """
 
@@ -8,18 +8,27 @@ import sys
 import json
 import tempfile
 import subprocess
-from typing import Dict
+from typing import Dict, List, Optional
 
 import psutil
 from fastmcp import FastMCP
+from pydantic import BaseModel, Field
 
 # The log_level is necessary for Cline to work
 mcp = FastMCP("implore", log_level="ERROR")
 
 
-def launch_implore_ui(message: str, title: str) -> Dict[str, any]:
+class Question(BaseModel):
+    """A single question in the quiz."""
+    id: str = Field(description="Unique identifier for the question")
+    text: str = Field(description="The question text to display")
+    type: str = Field(description="Question type: 'multiple_choice' or 'free_form'")
+    options: Optional[List[str]] = Field(default=None, description="Options for multiple choice questions")
+
+
+def launch_implore_ui(questions_json: str, title: str) -> Dict[str, any]:
     """Launch the GUI in a separate process and get the result via temp file."""
-    # Create a temporary file for the feedback result
+    # Create a temporary file for the result
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
         output_file = tmp.name
 
@@ -33,7 +42,7 @@ def launch_implore_ui(message: str, title: str) -> Dict[str, any]:
             sys.executable,
             "-u",
             ui_script_path,
-            "--message", message,
+            "--questions", questions_json,
             "--title", title,
             "--output-file", output_file
         ]
@@ -61,32 +70,98 @@ def launch_implore_ui(message: str, title: str) -> Dict[str, any]:
 
 
 @mcp.tool()
-def implore(message: str = "HelloWorld", title: str = "Human Input Requested") -> str:
+def implore(
+    questions: List[Dict],
+    title: str = "Human Input Requested"
+) -> Dict[str, any]:
     """
-    Implore the Human Intelligence - Display a GUI dialog to request input from the user.
+    Implore the Human Intelligence - Display a quiz-style GUI dialog to request input from the user.
     
-    This tool launches a separate GUI process to show a dialog box with the specified 
-    message and waits for the user to respond. The GUI runs independently to avoid 
-    blocking the main MCP server process.
+    This tool launches a separate GUI process to show a quiz with one or more questions
+    and waits for the user to respond. Perfect for clarifying requirements, getting decisions,
+    or extracting implicit knowledge from users.
     
     Args:
-        message: The message to display to the user (default: "HelloWorld")
+        questions: A list of question objects. Each question object should have:
+                   - text (str): The question text
+                   - type (str): Either "multiple_choice" or "free_form"
+                   - options (list, optional): List of options for multiple choice questions
+                   - id (str, optional): Unique identifier (auto-generated as "q1", "q2", etc. if not provided)
         title: The title of the dialog window (default: "Human Input Requested")
     
     Returns:
-        The user's response as a string, or a message if cancelled
+        Dictionary with structured response:
+        - On success: {"success": True, "answers": {question_id: answer, ...}}
+        - On cancel: {"success": False, "cancelled": True}
+        - On error: {"success": False, "error": "error message"}
+    
+    Examples:
+        Single question:
+        implore(questions=[
+            {
+                "id": "api_key",
+                "text": "What is your API key?",
+                "type": "free_form"
+            }
+        ])
+        
+        Multiple questions:
+        implore(questions=[
+            {
+                "id": "framework",
+                "text": "Which framework should we use?",
+                "type": "multiple_choice",
+                "options": ["React", "Vue", "Angular"]
+            },
+            {
+                "id": "requirements",
+                "text": "Any additional requirements?",
+                "type": "free_form"
+            }
+        ])
     """
     try:
-        result = launch_implore_ui(message, title)
+        # Validate and structure the questions
+        question_list = []
+        for i, q in enumerate(questions):
+            if isinstance(q, dict):
+                # Ensure required fields
+                q_id = q.get("id", f"q{i+1}")
+                q_text = q.get("text", "")
+                q_type = q.get("type", "free_form")
+                q_options = q.get("options", None)
+                
+                question_list.append({
+                    "id": q_id,
+                    "text": q_text,
+                    "type": q_type,
+                    "options": q_options
+                })
         
-        if result["success"]:
-            value = result["value"]
-            return value if value else "(empty response)"
+        # Convert to JSON string for passing to subprocess
+        questions_json = json.dumps(question_list)
+        
+        # Launch the UI
+        result = launch_implore_ui(questions_json, title)
+        
+        if result.get("success"):
+            answers = result.get("answers", {})
+            return {
+                "success": True,
+                "answers": answers
+            }
         else:
-            return "(cancelled by user)"
+            return {
+                "success": False,
+                "cancelled": True
+            }
             
     except Exception as e:
-        return f"Error displaying dialog: {str(e)}"
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
 
 if __name__ == "__main__":
     # Run the MCP server
