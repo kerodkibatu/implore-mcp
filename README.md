@@ -32,14 +32,14 @@ git clone <repository-url>
 cd implore-mcp
 ```
 
-2. Install dependencies:
+2. Install dependencies using uv:
 ```bash
-pip install -e .
+uv sync
 ```
 
-Or install dependencies directly:
+Or install directly:
 ```bash
-pip install fastmcp>=2.0.0 psutil>=7.0.0 pyside6>=6.8.2.1
+uv pip install fastmcp>=2.0.0 psutil>=7.0.0 pyside6>=6.8.2.1
 ```
 
 ## Usage
@@ -49,18 +49,30 @@ pip install fastmcp>=2.0.0 psutil>=7.0.0 pyside6>=6.8.2.1
 Start the MCP server:
 
 ```bash
-python server.py
+uv run server.py
 ```
 
-Or if installed as a package:
+Or using Python directly:
 
 ```bash
-implore-mcp
+python server.py
 ```
 
 ### Configuring in MCP Clients
 
 Add to your MCP client configuration (e.g., Claude Desktop, Cline):
+
+#### Using uv:
+```json
+{
+  "mcpServers": {
+    "implore": {
+      "command": "uv",
+      "args": ["run", "C:/path/to/implore-mcp/server.py"]
+    }
+  }
+}
+```
 
 #### Using Python directly:
 ```json
@@ -69,17 +81,6 @@ Add to your MCP client configuration (e.g., Claude Desktop, Cline):
     "implore": {
       "command": "python",
       "args": ["C:/path/to/implore-mcp/server.py"]
-    }
-  }
-}
-```
-
-#### Using installed package:
-```json
-{
-  "mcpServers": {
-    "implore": {
-      "command": "implore-mcp"
     }
   }
 }
