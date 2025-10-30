@@ -10,7 +10,7 @@ Inspired by the [Interactive Feedback MCP](https://github.com/dotcursorrules/int
 
 - **Quiz-Style Interface**: Display multiple questions in a single, scrollable dialog
 - **Multiple Question Types**: 
-  - Multiple choice (radio buttons)
+  - Multiple choice (radio buttons with automatic "Other..." option including text input)
   - Free-form text input
 - **Process Isolation**: GUI runs in a separate subprocess to avoid blocking the MCP server
 - **Structured Responses**: Get organized answers mapped to question IDs
@@ -188,6 +188,7 @@ Displays a quiz-style GUI dialog to request input from the user. The dialog runs
 Each question in the list should have:
 - `text` (str, required): The question text to display
 - `type` (str, required): Either "multiple_choice" or "free_form"
+- For "multiple_choice", an automatic "Other..." option with free-text input is always included after the provided options.
 - `options` (list, optional): List of option strings (required for multiple_choice)
 - `id` (str, optional): Unique identifier (auto-generated as "q1", "q2", etc. if not provided)
 
@@ -201,6 +202,7 @@ Dictionary with structured response:
 **Notes:**
 - Multiple choice questions that aren't answered will have `null` value
 - Free-form questions that aren't answered will have empty string value
+- Prefer using comprehensive multiple choice options for most questions to guide responses, reserving free-form for simple copy-paste values or easily answered open questions. The automatic "Other..." option in multiple choice provides flexibility for additional input.
 
 ## Use Cases
 

@@ -68,23 +68,22 @@ def launch_implore_ui(questions_json: str, title: str) -> Dict[str, any]:
             os.unlink(output_file)
         raise e
 
-
 @mcp.tool()
 def implore(
     questions: List[Dict],
     title: str = "Human Input Requested"
 ) -> Dict[str, any]:
     """
-    Implore the Human Intelligence - Display a quiz-style GUI dialog to request input from the user.
-    
     This tool launches a separate GUI process to show a quiz with one or more questions
-    and waits for the user to respond. Perfect for clarifying requirements, getting decisions,
-    or extracting implicit knowledge from users.
+    and waits for the user to respond. Multiple choice questions include an automatic "Other..." 
+    option with text input for additional flexibility. Perfect for clarifying requirements, 
+    getting decisions, or extracting implicit knowledge from users.
     
     Args:
         questions: A list of question objects. Each question object should have:
                    - text (str): The question text
-                   - type (str): Either "multiple_choice" or "free_form"
+                   - type (str): Either "multiple_choice" or "free_form". 
+                     For "multiple_choice", an automatic "Other..." radio button with text input is included after the options.
                    - options (list, optional): List of options for multiple choice questions
                    - id (str, optional): Unique identifier (auto-generated as "q1", "q2", etc. if not provided)
         title: The title of the dialog window (default: "Human Input Requested")
@@ -94,6 +93,13 @@ def implore(
         - On success: {"success": True, "answers": {question_id: answer, ...}}
         - On cancel: {"success": False, "cancelled": True}
         - On error: {"success": False, "error": "error message"}
+    
+    Notes:
+    - Unanswered multiple choice questions return null
+    - Unanswered free-form questions return empty string ""
+    - Prefer using comprehensive multiple choice options for most questions to provide structured choices, 
+      reserving free-form for simple copy-paste values or easily answered open questions. 
+      The automatic "Other..." option in multiple choice provides flexibility for cases not covered by the options.
     
     Examples:
         Single question:

@@ -37,6 +37,11 @@ class QuizWidget(QWidget):
                 font-family: "Segoe UI", sans-serif;
             }
             
+            QLabel {
+                background-color: transparent;
+                color: #fafafa;
+            }
+            
             QLabel#title {
                 font-size: 26px;
                 font-weight: 600;
@@ -284,8 +289,22 @@ class QuizWidget(QWidget):
                 button_group.addButton(radio)
                 options_layout.addWidget(radio)
             
+            other_radio = QRadioButton("Other...")
+            other_radio.setCursor(Qt.PointingHandCursor)
+            button_group.addButton(other_radio)
+            options_layout.addWidget(other_radio)
+            
+            other_text = QTextEdit()
+            other_text.setPlaceholderText("Please specify...")
+            other_text.setHidden(True)
+            options_layout.addWidget(other_text)
+            
+            other_radio.toggled.connect(lambda checked: other_text.setHidden(not checked))
+            
             card_layout.addLayout(options_layout)
             card.button_group = button_group
+            card.other_radio = other_radio
+            card.other_text = other_text
             
         elif q_type == "free_form":
             text_input = QTextEdit()
@@ -305,7 +324,14 @@ class QuizWidget(QWidget):
             
             if q_type == "multiple_choice":
                 checked_button = widget.button_group.checkedButton()
-                answers[q_id] = checked_button.text() if checked_button else None
+                if checked_button:
+                    if checked_button == widget.other_radio:
+                        text = widget.other_text.toPlainText().strip()
+                        answers[q_id] = text if text else ""
+                    else:
+                        answers[q_id] = checked_button.text()
+                else:
+                    answers[q_id] = None
             elif q_type == "free_form":
                 text = widget.text_widget.toPlainText().strip()
                 answers[q_id] = text if text else ""
