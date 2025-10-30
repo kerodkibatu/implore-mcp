@@ -12,5 +12,8 @@ dependencies = [
     "pyside6>=6.8.2.1",
 ]
 
+[project.scripts]
+implore-mcp = "server"
+
 [tool.setuptools]
 py-modules = ["implore_ui", "server"]
