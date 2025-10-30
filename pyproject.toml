@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-implore-mcp = "server"
+implore-mcp = "server:main"
 
 [tool.setuptools]
 py-modules = ["implore_ui", "server"]
