@@ -1,11 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "implore-mcp"
 version = "0.1.0"
-description = "MCP to Implore the Human Intelligence - A tool to request input from humans via GUI dialog"
-readme = "README.md"
-requires-python = ">=3.10"
+description = "MCP to Implore the Human Intelligence"
 dependencies = [
     "fastmcp>=2.0.0",
     "psutil>=7.0.0",
     "pyside6>=6.8.2.1",
 ]
+
+[tool.setuptools]
+py-modules = ["implore_ui", "server"]
